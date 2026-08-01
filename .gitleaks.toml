@@ -1,0 +1,36 @@
+title = "OpenShip Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Synthetic HMAC secret used only by the billing crypto unit test"
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+paths = ['''^apps/api/src/modules/billing/oblien-webhook-crypto\.test\.ts$''']
+regexes = ['''const SECRET = "[A-Za-z0-9_-]+";''']
+
+[[allowlists]]
+description = "Synthetic database password embedded in a Docker inspect fixture"
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+paths = ['''^apps/api/test/modules/migration/docker-inspect\.test\.ts$''']
+regexes = ['''env: \[.*"POSTGRES_PASSWORD=[^"\r\n]+"''']
+
+[[allowlists]]
+description = "Documented Stripe placeholder in the checked-in example environment"
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+paths = ['''^apps/api/\.env\.example$''']
+regexes = ['''^# STRIPE_SECRET_KEY=sk_test_\.\.\.$''']
+
+[[allowlists]]
+description = "Deliberately fake PEM boundaries exercising multiline env parsing"
+condition = "AND"
+targetRules = ["private-key"]
+regexTarget = "line"
+paths = ['''^apps/api/test/lib/compose-parser\.test\.ts$''']
+regexes = ['''BEGIN PRIVATE KEY''']
