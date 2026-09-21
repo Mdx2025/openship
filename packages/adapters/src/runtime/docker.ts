@@ -1218,6 +1218,7 @@ export class DockerRuntime implements RuntimeAdapter {
       const buildContext = await createDockerBuildContext(config, {
         requireRepositoryDockerfile: config.stack === "docker",
         onLog: log.callback,
+        sameHost: this.transport.kind === "socket",
       });
 
       // Report the size of the context so users know what they're paying
@@ -1646,7 +1647,10 @@ export class DockerRuntime implements RuntimeAdapter {
       prepareLogger.step("clone", "completed", "Source cloned on the server");
     } else {
       prepareLogger.step("clone", "running", "Preparing shared build context...");
-      tree = await prepareSourceTree(source, { onLog: prepareLogger.callback });
+      tree = await prepareSourceTree(source, {
+        onLog: prepareLogger.callback,
+        sameHost: this.transport.kind === "socket",
+      });
     }
 
     try {
