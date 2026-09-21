@@ -3,6 +3,12 @@
 All notable changes to Openship. Versions follow [semver](https://semver.org);
 the in-app updater surfaces critical advisories from `release-advisories.json`.
 
+## Unreleased — deployment recovery
+
+- Finalize a service deployment over its pre-created planning row without a unique-key failure; preserve its ID, creation time, logs pointer and GitHub check linkage, and return the stored row.
+- Allow local Docker socket builds to use the local Git identity or relay helper. Orchestrator clones for SSH/TCP builds continue to exclude host-bound credentials belonging to the build server.
+- Add database and clone-boundary regression coverage. This source change supersedes the temporary September 20 runtime workaround after a separately approved platform release; it does not trigger a platform upgrade or application redeployment.
+
 ## 0.4.9
 
 Rollback is rebuilt so it actually restores a release, plus a round of fixes

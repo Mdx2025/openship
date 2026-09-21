@@ -625,10 +625,26 @@ export function createServiceRepo(db: Database) {
     },
 
     async createServiceDeployment(data: Omit<NewServiceDeployment, "id">) {
-      const id = generateId("sd");
-      const row = { id, ...data };
-      await db.insert(serviceDeployment).values(row);
-      return { ...row, createdAt: new Date(), updatedAt: new Date() } as ServiceDeployment;
+      // Planning already creates this pair. Finalization must retain its row ID
+      // and check-run linkage rather than fail after the container has started.
+      const [row] = await db.insert(serviceDeployment)
+        .values({ id: generateId("sd"), ...data })
+        .onConflictDoUpdate({
+          target: [serviceDeployment.deploymentId, serviceDeployment.serviceId],
+          set: {
+            serviceName: data.serviceName,
+            containerId: data.containerId ?? null,
+            status: data.status,
+            imageRef: data.imageRef ?? null,
+            imageDigest: data.imageDigest ?? null,
+            hostPort: data.hostPort ?? null,
+            ip: data.ip ?? null,
+            reason: data.reason ?? null,
+            reasonSkipped: data.reasonSkipped ?? null,
+            updatedAt: new Date(),
+          },
+        }).returning();
+      return row!;
     },
 
     /**

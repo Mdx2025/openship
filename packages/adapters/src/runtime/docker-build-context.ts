@@ -262,6 +262,7 @@ async function cloneGitSource(
   config: BuildConfig,
   targetPath: string,
   onLog?: LogCallback,
+  sameHost = false,
 ): Promise<void> {
   // SSH mode (per-server key / deploy key): clone over git@github.com with a
   // 0600 key + pinned known_hosts in a local temp dir (removed in finally).
@@ -276,13 +277,14 @@ async function cloneGitSource(
   }
 
   // Same assembly the on-server clones use (git-clone.ts), in argv form.
-  // `config.gitAmbient` is deliberately NOT forwarded: it names credentials that
-  // exist on the BUILD SERVER, and this clone runs on the orchestrator standing
-  // in for it — the server's identity is not ours to use.
+  // Host-bound credentials are valid here only for a local-socket build. SSH
+  // and TCP builds must not borrow the orchestrator's identity or helper path.
   const { cloneUrl, env: gitEnv, credArgs } = assembleGitClone({
     repoUrl: config.repoUrl,
     gitToken: config.gitToken,
     ssh: sshMaterial,
+    gitCredentialHelperPath: sameHost ? config.gitCredentialHelperPath : undefined,
+    ambient: sameHost ? config.gitAmbient : undefined,
   });
 
   try {
@@ -353,7 +355,7 @@ export interface ResolvedDockerfile {
  */
 export async function prepareSourceTree(
   config: BuildConfig,
-  opts?: { onLog?: LogCallback },
+  opts?: { onLog?: LogCallback; sameHost?: boolean },
 ): Promise<SourceTree> {
   const contextDir = await mkdtemp(join(tmpdir(), "openship-docker-context-"));
 
@@ -365,7 +367,7 @@ export async function prepareSourceTree(
       // build-log stream. A fresh clone already contains only tracked files, so
       // there's nothing to prune (pruning by name/gitignore would delete tracked
       // source — the exact bug this rewrite removes).
-      await cloneGitSource(config, contextDir, opts?.onLog);
+      await cloneGitSource(config, contextDir, opts?.onLog, opts?.sameHost);
     }
 
     // Docker-only refinement: dockerode tars the context as-is, so honor
@@ -446,9 +448,9 @@ export async function resolveServiceDockerfile(
  */
 export async function createDockerBuildContext(
   config: BuildConfig,
-  opts?: { requireRepositoryDockerfile?: boolean; onLog?: LogCallback },
+  opts?: { requireRepositoryDockerfile?: boolean; onLog?: LogCallback; sameHost?: boolean },
 ): Promise<DockerBuildContext> {
-  const tree = await prepareSourceTree(config, { onLog: opts?.onLog });
+  const tree = await prepareSourceTree(config, { onLog: opts?.onLog, sameHost: opts?.sameHost });
   try {
     const resolved = await resolveServiceDockerfile(tree.contextDir, config, {
       requireRepositoryDockerfile: opts?.requireRepositoryDockerfile,
